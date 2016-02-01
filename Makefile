@@ -38,8 +38,8 @@ DBstats: DBstats.c DB.c DB.h QV.c QV.h
 DBrm: DBrm.c DB.c DB.h QV.c QV.h
 	gcc $(CFLAGS) -o DBrm DBrm.c DB.c QV.c -lm
 
-simulator: simulator.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o simulator simulator.c DB.c QV.c -lm
+simulator: simulator.c DB.c DB.h QV.c QV.h kseq.h
+	gcc $(CFLAGS) -o simulator simulator.c DB.c QV.c -lm -lz
 
 fasta2DAM: fasta2DAM.c DB.c DB.h QV.c QV.h
 	gcc $(CFLAGS) -o fasta2DAM fasta2DAM.c DB.c QV.c -lm

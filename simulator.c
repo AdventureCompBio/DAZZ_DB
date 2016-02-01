@@ -34,8 +34,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-
+#include <zlib.h>
 #include "DB.h"
+#include "kseq.h"
+
+KSEQ_INIT(gzFile, gzread)
 
 static char *Usage[] = { "<genlen:double> [-c<double(20.)>] [-b<double(.5)>] [-r<int>]",
                          "                [-m<int(10000)>]  [-s<int(2000)>]  [-x<int(4000)>]",
@@ -52,6 +55,7 @@ static int    RSDEV;      // -s option
 static int    RSHORT;     // -x option
 static double ERROR;      // -e option
 static FILE  *MAP;        // -M option
+static FILE *input_genome; // -F option
 
 #define INS_RATE  .73333  // insert rate
 #define DEL_RATE  .20000  // deletion rate
@@ -335,6 +339,7 @@ int main(int argc, char *argv[])
     RSHORT   = 4000;
     ERROR    = .15;
     MAP      = NULL;
+	input_genome = NULL;
 
     j = 1;
     for (i = 1; i < argc; i++)
@@ -370,6 +375,12 @@ int main(int argc, char *argv[])
             if (MAP == NULL)
               exit (1);
             break;
+          case 'F':
+              input_genome = gzopen(argv[i]+2,"r");
+			  fprintf(stderr,"use genome %s\n", argv[i] + 2);
+              if (input_genome == NULL)
+                exit (1);
+              break;
           case 'm':
             ARG_POSITIVE(RMEAN,"Mean read length")
             break;
@@ -410,10 +421,53 @@ int main(int argc, char *argv[])
     GENOME = (int) (glen*1000000.);
   }
 
-  source = random_genome();
+  kseq_t *seq;
+  
+  static char number[128] =
+      { 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 2,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 2,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+      };
+	  
 
+  if (input_genome == NULL) {
+  	source = random_genome();
+  	fprintf(stderr, "%s", source);
+  }
+  else {
+	  seq = kseq_init(input_genome);
+	  kseq_read(seq);
+	  source = (char *)malloc(strlen(seq->seq.s));
+	  //strcpy(source,seq->seq.s);
+	  GENOME = strlen(seq->seq.s);
+	  fprintf(stderr,"length %d\n", GENOME);
+	  //fprintf(stderr, "%s", seq->seq.s);
+	  strcpy(source, seq->seq.s);
+	  int k;
+	  for (k = 0; k < GENOME; k++)
+		  source[k] = number[source[k]];
+	  fprintf(stderr, "%s", source);
+  }
+  
   shotgun(source);
 
+  if (input_genome != NULL) {
+	  kseq_destroy(seq);
+	  gzclose(input_genome);
+  }
   if (MAP != NULL)
     fclose(MAP);
 
