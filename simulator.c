@@ -42,7 +42,7 @@ KSEQ_INIT(gzFile, gzread)
 
 static char *Usage[] = { "<genlen:double> [-c<double(20.)>] [-b<double(.5)>] [-r<int>]",
                          "                [-m<int(10000)>]  [-s<int(2000)>]  [-x<int(4000)>]",
-                         "                [-e<double(.15)>] [-M<file>]"
+                         "                [-e<double(.15)>] [-M<file>] [-F<input genome file>]"
                        };
 
 static int    GENOME;     // -g option * 1Mbp
@@ -207,7 +207,8 @@ static double sample_unorm(double x)
 //    format that contains the sampling interval, read length, and a read id.
 
 static void shotgun(char *source)
-{ int       maxlen, nreads, qv;
+{ int       maxlen, qv;
+  static int nreads = 0;
   int64     totlen, totbp;
   char     *rbuffer;
   double    nmean, nsdev;
@@ -230,7 +231,7 @@ static void shotgun(char *source)
   maxlen  = 0;
   totlen  = 0;
   totbp   = COVERAGE*GENOME;
-  nreads  = 0;
+  //nreads  = 0;
   while (totlen < totbp)
     { int   len, sdl, ins, del, elen, rbeg, rend;
       int   j;
@@ -446,24 +447,31 @@ int main(int argc, char *argv[])
   if (input_genome == NULL) {
   	source = random_genome();
   	fprintf(stderr, "%s", source);
+	shotgun(source);
   }
   else {
 	  seq = kseq_init(input_genome);
-	  kseq_read(seq);
-	  source = (char *)malloc(strlen(seq->seq.s));
-	  //strcpy(source,seq->seq.s);
-	  GENOME = strlen(seq->seq.s);
-	  fprintf(stderr,"length %d\n", GENOME);
-	  //fprintf(stderr, "%s", seq->seq.s);
-	  strcpy(source, seq->seq.s);
-	  int k;
-	  for (k = 0; k < GENOME; k++)
-		  source[k] = number[source[k]];
-	  fprintf(stderr, "%s", source);
+	  int l;
+	  while ((l = kseq_read(seq)) >= 0) {
+	  	source = (char *)malloc(strlen(seq->seq.s));
+	  	//strcpy(source,seq->seq.s);
+	  	GENOME = strlen(seq->seq.s);
+	  	fprintf(stderr,"name %s, ", seq->name.s);
+	  	fprintf(stderr,"length %d\n", GENOME);
+	  	//fprintf(stderr, "%s", seq->seq.s);
+	  	strcpy(source, seq->seq.s);
+	  	int k;
+	  	for (k = 0; k < GENOME; k++)
+	  		  source[k] = number[source[k]];
+	  	fprintf(stderr, "%s", source);
+	  	shotgun(source);
+		free(source);
+	}
+	  fprintf(stderr,"return value: %d\n", l); 
   }
   
-  shotgun(source);
-
+  
+  
   if (input_genome != NULL) {
 	  kseq_destroy(seq);
 	  gzclose(input_genome);
