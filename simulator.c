@@ -209,6 +209,7 @@ static double sample_unorm(double x)
 static void shotgun(char *source)
 { int       maxlen, qv;
   static int nreads = 0;
+  static int chr = 0;
   int64     totlen, totbp;
   char     *rbuffer;
   double    nmean, nsdev;
@@ -312,11 +313,12 @@ static void shotgun(char *source)
         printf("%s\n",rbuffer+j);
 
        if (MAP != NULL)
-         fprintf(MAP," %9d %9d\n",rbeg,rend);
+         fprintf(MAP,"%9d %9d %9d %9d\n", nreads, chr, rbeg, rend);
 
        totlen += elen;
        nreads += 1;
     }
+	chr += 1;
 }
 
 int main(int argc, char *argv[])
@@ -463,7 +465,7 @@ int main(int argc, char *argv[])
 	  	int k;
 	  	for (k = 0; k < GENOME; k++)
 	  		  source[k] = number[source[k]];
-	  	fprintf(stderr, "%s", source);
+	  	//fprintf(stderr, "%s", source);
 	  	shotgun(source);
 		free(source);
 	}
